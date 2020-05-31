@@ -1,0 +1,60 @@
+version: '3.4'
+
+services:
+  samba:
+    image: dperson/samba
+    environment:
+      TZ: 'EST5EDT'
+    networks:
+      - default
+    ports:
+      - "137:137/udp"
+      - "138:138/udp"
+      - "139:139/tcp"
+      - "445:445/tcp"
+    read_only: true
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    volumes:
+      - /var/foo/HDD:/mnt/HDD:z
+    command: '-s "HDD;/mnt/HDD;yes;no;yes" -g "server min protocol = NT1" -p'
+
+  db:
+    image: mariadb
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: always
+    volumes:
+      - /opt/samba/nextcloud/db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+
+
+  nextcloud:
+    image: nextcloud
+    environment:
+    - MYSQL_HOST=db
+    ports:
+    - 80:80
+    volumes:
+    - /var/foo/html:/var/www/html
+    - /var/foo/HDD:/HDD
+    environment:
+    - NEXTCLOUD_DATA_DIR=/HDD
+    - NEXTCLOUD_ADMIN_USER=nextadmin
+    - NEXTCLOUD_ADMIN_PASSWORD=pasword
+    - MYSQL_HOST=db
+    - MYSQL_PASSWORD=password  
+    - MYSQL_DATABASE=nextcloud
+    - MYSQL_USER=nextcloud
+    links:
+    - db
+    restart: always
+
+networks:
+  default:
